@@ -26,7 +26,7 @@ const SignIn: React.FC = () => {
 	const { error, setFriendlyError, clearError } = useFriendlyError();
 
 	if (session) {
-		return <Redirect href="/(app)" />;
+		return <Redirect href="./(app)" />;
 	}
 
 	const handleSignIn = async () => {

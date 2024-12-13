@@ -9,12 +9,12 @@ export type ThemedTextInputProps = TextInputProps & {
 	active?: boolean;
 };
 
-const ThemedTextInput = ({lightColor, darkColor, active, ...rest} : ThemedTextInputProps) => {
+const ThemedTextInput = ({style, lightColor, darkColor, active, ...rest} : ThemedTextInputProps) => {
 
-	const color = useThemeColor({ light: lightColor, dark: darkColor }, 'icon');
+	const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
 	return (
-		<TextInput style={[{color, borderColor: color, borderWidth: .5, padding: 10, borderRadius: 20, fontSize: 20, fontWeight: 'bold'}]} {...rest}>
+		<TextInput style={[{color, borderColor: color, borderWidth: .5, padding: 10, borderRadius: 20, fontSize: 20, fontWeight: 'bold'}, style]} {...rest}>
 
 		</TextInput>
 	);

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { Animated, ScrollView, StyleSheet, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useSession } from "@/components/ctx";
@@ -6,20 +6,30 @@ import { ThemedView } from "@/components/themed/ThemedView";
 import { ThemedText } from "@/components/themed/ThemedText";
 import TaskItem from "@/components/TaskItem";
 import AnimatedHeader from "@/components/AnimatedHeader";
+import {ThemedAnimatedView} from "@/components/themed/ThemedAnimatedView";
+import {Colors} from "@/constants/Colors";
+import Calendar from "@/components/AnimatedHeader";
+import moment from "moment/moment";
 
 export default function Index() {
+	const [selectedDate, setSelectedDate] = useState<any>(null);
 	const scrollY = useRef(new Animated.Value(0)).current;
 	const { session } = useSession();
+
+
+	useEffect(() => {
+		setSelectedDate(moment().format('YYYY-MM-DD') );
+	}, [])
 
 	// Animations for header container and title
 	const animatedContainerStyle = {
 		paddingTop: scrollY.interpolate({
-			inputRange: [0, 100],
-			outputRange: [80, 45], // Adjust size to make the header smaller
+			inputRange: [0, 30],
+			outputRange: [80, 0], // Adjust size to make the header smaller
 			extrapolate: "clamp",
 		}),
 		paddingBottom: scrollY.interpolate({
-			inputRange: [0, 100],
+			inputRange: [0, 30],
 			outputRange: [40, 0], // Reduce padding as you scroll
 			extrapolate: "clamp",
 		}),
@@ -27,10 +37,15 @@ export default function Index() {
 
 	const animatedTitleStyle = {
 		opacity: scrollY.interpolate({
-			inputRange: [0, 100],
+			inputRange: [0, 30],
 			outputRange: [1, 0], // Fade out the title
 			extrapolate: "clamp",
 		}),
+		paddingBottom: scrollY.interpolate({
+			inputRange: [0, 30],
+			outputRange: [20, 0],
+			extrapolate: "clamp",
+		})
 	};
 
 	if (!session) {
@@ -38,20 +53,13 @@ export default function Index() {
 	}
 
 	return (
-		<ThemedView style={styles.container}>
+		<View style={styles.container}>
 			{/* Header with animation */}
-			<Animated.View style={[styles.calendarContainer, animatedContainerStyle]}>
-				{/* Title fades out */}
-				<Animated.View style={[animatedTitleStyle]}>
-					<View style={styles.calendarTitleView}>
-						<ThemedText type="title">May, 2024</ThemedText>
-					</View>
-				</Animated.View>
-				{/* Smaller Animated Header */}
+			<ThemedAnimatedView style={[styles.calendarContainer, animatedContainerStyle]}>
 				<View>
-					<AnimatedHeader />
+					<Calendar scrollY={scrollY} onSelectDate={setSelectedDate} selected={selectedDate} />
 				</View>
-			</Animated.View>
+			</ThemedAnimatedView>
 
 			{/* Task list */}
 			<View>
@@ -74,8 +82,12 @@ export default function Index() {
 				<TaskItem />
 				<TaskItem />
 				<TaskItem />
+				<TaskItem />
+				<TaskItem />
+				<TaskItem />
+				<TaskItem />
 			</ScrollView>
-		</ThemedView>
+		</View>
 	);
 }
 

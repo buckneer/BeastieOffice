@@ -1,153 +1,103 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {Animated, StyleSheet, Dimensions, FlatList} from 'react-native';
-import moment from 'moment';
-import { ThemedView } from "@/components/themed/ThemedView";
-import { ThemedText } from "@/components/themed/ThemedText";
+import { useState, useEffect } from 'react'
+import {StyleSheet, Text, View, ScrollView, Animated} from 'react-native'
+import moment from 'moment'
+import Date from './Date'
+import {ThemedText} from "@/components/themed/ThemedText";
 
-const { width } = Dimensions.get('window');
-const ITEM_WIDTH = 80;
-const CENTER_POSITION = width / 2 - ITEM_WIDTH / 2;
 
-const AnimatedHeader = () => {
-	const [selectedDateIndex, setSelectedDateIndex] = useState(2); // Start at index 2 (current day)
-	const scrollX = useRef(new Animated.Value(0)).current;
-	const flatListRef = useRef<FlatList<any>>(null);
+export interface CalendarProps {
+	onSelectDate: (date: any) => void
+	selected: any
+	scrollY: Animated.Value; // Added prop for animation
+}
 
-	const getDates = () => {
-		const dates = [];
-		const currentMonth = moment().month();
-		const currentYear = moment().year();
-		const daysInMonth = moment().daysInMonth();
+const Calendar = ({ onSelectDate, selected, scrollY } : CalendarProps) => {
+	const [dates, setDates] = useState<any>([])
+	const [scrollPosition, setScrollPosition] = useState(0)
+	const [currentMonth, setCurrentMonth] = useState<string>()
 
-		// Add two days from the previous month for centering
-		for (let i = -2; i < 0; i++) {
-			dates.push(moment().subtract(1, 'month').date(moment().subtract(1, 'month').daysInMonth() + i + 1));
-		}
-
-		// Add all dates for the current month
-		for (let day = 1; day <= daysInMonth; day++) {
-			dates.push(moment([currentYear, currentMonth, day]));
-		}
-
-		// Add two days from the next month for centering
-		for (let i = 1; i <= 2; i++) {
-			dates.push(moment().add(1, 'month').date(i));
-		}
-
-		return dates;
-	};
+	const getCurrentMonth = () => {
+		const month = moment(dates[0]).add(scrollPosition / 60, 'days').format('MMMM, YYYY')
+		setCurrentMonth(month)
+	}
 
 	useEffect(() => {
-		const dates = getDates();
-		const today = moment().startOf('day');
-		const index = dates.findIndex((date) => date.isSame(today, 'day'));
-		if (index !== -1) {
-			setSelectedDateIndex(index);
-			if (flatListRef.current) {
-				flatListRef.current.scrollToOffset({
-					offset: index * ITEM_WIDTH,
-					animated: false,
-				});
-			}
-		}
-	}, []);
+		getCurrentMonth()
+	}, [scrollPosition])
 
-	const handleMomentumScrollEnd = (event: any) => {
-		const offsetX = event.nativeEvent.contentOffset.x;
-		const centerIndex = Math.round(offsetX / ITEM_WIDTH);
-		setSelectedDateIndex(centerIndex); // Update selected index
+	// get the dates from today to 10 days from now, format them as strings and store them in state
+	const getDates = () => {
+		const _dates = []
+		for (let i = 0; i < 10; i++) {
+			const date = moment().add(i, 'days')
+			_dates.push(date)
+		}
+		setDates(_dates)
+	}
+
+	useEffect(() => {
+		getDates()
+	}, [])
+
+	const animatedTitleStyle = {
+		opacity: scrollY.interpolate({
+			inputRange: [0, 100],
+			outputRange: [1, 0], // Fade out as you scroll
+			extrapolate: "clamp",
+		}),
+		transform: [
+			{
+				translateY: scrollY.interpolate({
+					inputRange: [0, 100],
+					outputRange: [0, -50], // Move upwards as you scroll
+					extrapolate: "clamp",
+				}),
+			},
+		],
 	};
 
 	return (
-		<ThemedView style={styles.container}>
-			<Animated.FlatList
-				ref={flatListRef}
-				data={getDates()}
-				keyExtractor={(item) => item.toString()}
-				horizontal
-				showsHorizontalScrollIndicator={false}
-				snapToInterval={ITEM_WIDTH}
-				decelerationRate="fast"
-				contentContainerStyle={{ paddingHorizontal: CENTER_POSITION }}
-				onMomentumScrollEnd={handleMomentumScrollEnd}
-				onScroll={Animated.event(
-					[{ nativeEvent: { contentOffset: { x: scrollX } } }],
-					{ useNativeDriver: true }
-				)}
-				renderItem={({ item, index }) => {
-					const inputRange = [
-						(index - 1) * ITEM_WIDTH,
-						index * ITEM_WIDTH,
-						(index + 1) * ITEM_WIDTH,
-					];
+		<>
+			<Animated.View style={[styles.centered, animatedTitleStyle]}>
+				<ThemedText style={styles.title}>{currentMonth}</ThemedText>
+			</Animated.View>
+			<View style={styles.dateSection}>
+				<View style={styles.scroll}>
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+					>
+						{dates.map((date: any, index: any) => (
+							<Date
+								key={index}
+								date={date}
+								onSelectDate={onSelectDate}
+								selected={selected}
+							/>
+						))}
+					</ScrollView>
+				</View>
+			</View>
+		</>
+	)
+}
 
-					// Adjust scaling and opacity for smooth animations
-					const scale = scrollX.interpolate({
-						inputRange,
-						outputRange: [1, 1.5, 1],
-						extrapolate: 'clamp',
-					});
-
-					const opacity = scrollX.interpolate({
-						inputRange,
-						outputRange: [0.5, 1, 0.5],
-						extrapolate: 'clamp',
-					});
-
-					const isCentered = index === selectedDateIndex;
-
-					return (
-						<Animated.View
-							style={[
-								styles.dateContainer,
-								{
-									transform: [{ scale }],
-									opacity,
-								},
-							]}
-						>
-							<ThemedText
-								type="default"
-								style={[styles.dateText, isCentered && styles.centeredDateText]}
-							>
-								{item.format('DD')}
-							</ThemedText>
-							<ThemedText
-								type="default"
-								style={[styles.dayText, isCentered && styles.centeredDayText]}
-							>
-								{item.format('dddd')}
-							</ThemedText>
-						</Animated.View>
-					);
-				}}
-			/>
-		</ThemedView>
-	);
-};
+export default Calendar
 
 const styles = StyleSheet.create({
-	container: {
-		height: 140,
-		backgroundColor: 'transparent',
-	},
-	dateContainer: {
-		width: ITEM_WIDTH,
+	centered: {
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
-	dateText: {
-		fontSize: 16,
+	title: {
+		fontSize: 24,
+		fontWeight: 'bold',
 	},
-	dayText: {
-		fontSize: 12,
+	dateSection: {
+		width: '100%',
+		padding: 20,
 	},
-	centeredDateText: {
+	scroll: {
 
 	},
-	centeredDayText: {
-
-	},
-});
-
-export default AnimatedHeader;
+})
