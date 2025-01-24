@@ -2,9 +2,19 @@ import React from "react";
 import { StyleSheet, Text, View, FlatList } from "react-native";
 import { useSetupData } from "@/components/SetupContext";
 import { ThemedText } from "@/components/themed/ThemedText";
+import NavigationIcons from "@/components/NavigationIcons";
 
 export default function SalaryDetails() {
-	const { officeName, workspaces, roles } = useSetupData();
+	const { officeName, workspaces, roles, saveToFirestore } = useSetupData();
+
+	const handleNext = async () => {
+		try {
+			await saveToFirestore(); // Save data to Firestore
+			console.log("Data saved successfully");
+		} catch (error) {
+			console.error("Error saving data to Firestore:", error);
+		}
+	};
 
 	return (
 		<View style={styles.container}>
@@ -35,6 +45,7 @@ export default function SalaryDetails() {
 					)}
 				/>
 			</View>
+			<NavigationIcons prevStepRoute={"./"} nextStepRoute={"../(tabs)"} />
 		</View>
 	);
 }

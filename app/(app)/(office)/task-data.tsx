@@ -13,10 +13,19 @@ import {useSetupData} from "@/components/SetupContext";
 import {useState} from "react";
 
 export default function TaskData() {
-	const { roles, editRole } = useSetupData();
+	const { roles, editRole, saveToFirestore } = useSetupData();
 	const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 	const toggleExpand = (index: number) => {
 		setExpandedIndex((prev) => (prev === index ? null : index)); // Toggle expansion
+	};
+
+	const handleNext = async () => {
+		try {
+			await saveToFirestore(); // Save data to Firestore
+			console.log("Data saved successfully");
+		} catch (error) {
+			console.error("Error saving data to Firestore:", error);
+		}
 	};
 
 	return (
@@ -44,7 +53,7 @@ export default function TaskData() {
 						/>
 					)}
 				/>
-				<NavigationIcons prevStepRoute={"./"} nextStepRoute={"./salary-details"} />
+				<NavigationIcons prevStepRoute={"./"} nextStepRoute={"./salary-details"} onNext={handleNext} />
 			</SafeAreaView>
 		</KeyboardAvoidingView>
 	);

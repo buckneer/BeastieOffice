@@ -9,10 +9,19 @@ import {useSetupData} from "@/components/SetupContext";
 export default function OfficeDetails() {
 
 
-	const { officeName, setOfficeName, workspaces, setWorkspaces } = useSetupData();
+	const { officeName, setOfficeName, workspaces, setWorkspaces, saveToFirestore } = useSetupData();
 	// Office Name: A unique identifier for the office.
 	// Industry/Type: Dropdown or text field (e.g., Restaurant, Tech Development, Marketing).
 	// Number of Workspaces: Number of subdivisions (e.g., Restaurant 1, Office 2).
+
+	const handleNext = async () => {
+		try {
+			await saveToFirestore(); // Save data to Firestore
+			console.log("Data saved successfully");
+		} catch (error) {
+			console.error("Error saving data to Firestore:", error);
+		}
+	};
 
 	// STEP 1
 	return (
@@ -30,7 +39,7 @@ export default function OfficeDetails() {
 					<ThemedTextInput onChangeText={(e) => setWorkspaces(parseInt(e))} value={workspaces.toString()}  placeholder="Number of workspaces" keyboardType='numeric' style={styles.titleTextInput} />
 				</View>
 
-				<NavigationIcons disabledNext={false} nextStepRoute={"./role-setup"} prevStepRoute={'./home'} />
+				<NavigationIcons disabledNext={false} nextStepRoute={"./role-setup"} prevStepRoute={'./home'} onNext={handleNext} />
 			</SafeAreaView>
 		</KeyboardAvoidingView>
 	)

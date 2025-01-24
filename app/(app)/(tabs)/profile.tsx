@@ -33,7 +33,7 @@ export default function Profile() {
 			</View>
 
 			<ProfileItem icon={'add-outline'} text="Create Office" onPress={() => {router.push('/(app)/(office)/home')}} />
-			<ProfileItem icon={'people-outline'} text="My Offices" />
+			<ProfileItem icon={'people-outline'} text="My Offices" onPress={() => {router.push('/(app)/(my)/my-offices')}} />
 			<ProfileItem icon={'person-add-outline'} text="Join Office" />
 			<ProfileItem icon={'exit-outline'} text="Logout" alt={true} onPress={signOut} />
 

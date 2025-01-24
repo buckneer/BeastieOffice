@@ -20,7 +20,7 @@ export default function RoleSetup() {
 	const [selectedColor, setSelectedColor] = useState<"green" | "blue" | "rose" | "orange" | "purple" | "cyan" | "amber" | "coral" | null>(null);
 	const backgroundTint = useThemeColor({}, 'tint');
 
-	const { addRole } = useSetupData(); // Use the context to access `addRole`
+	const { addRole, saveToFirestore } = useSetupData(); // Use the context to access `addRole`
 
 	const handleAddRole = () => {
 		if (!roleName || !selectedColor) {
@@ -34,6 +34,16 @@ export default function RoleSetup() {
 		setRoleName("");
 		setSelectedColor(null);
 	};
+
+	const handleNext = async () => {
+		try {
+			await saveToFirestore(); // Save data to Firestore
+			console.log("Data saved successfully");
+		} catch (error) {
+			console.error("Error saving data to Firestore:", error);
+		}
+	};
+
 
 	return (
 		<KeyboardAvoidingView style={styles.mainSafeAreaView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -73,7 +83,7 @@ export default function RoleSetup() {
 					<Text style={styles.saveButtonText}>ADD</Text>
 				</TouchableOpacity>
 			</View>
-			<NavigationIcons prevStepRoute={'./'} nextStepRoute={'./task-data'} />
+			<NavigationIcons prevStepRoute={'./'} nextStepRoute={'./task-data'} onNext={handleNext} />
 		</KeyboardAvoidingView>
 	);
 }
