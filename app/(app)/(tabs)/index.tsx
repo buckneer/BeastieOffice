@@ -21,6 +21,7 @@ export default function Index() {
 		setSelectedDate(moment().format('YYYY-MM-DD') );
 	}, [])
 
+
 	// Animations for header container and title
 	const animatedContainerStyle = {
 		paddingTop: scrollY.interpolate({

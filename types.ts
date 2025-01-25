@@ -1,4 +1,6 @@
 // types.ts
+import {User as FirebaseUser} from "firebase/auth";
+
 export interface Role {
 	name: string;
 	color: "green" | "blue" | "rose" | "orange" | "purple" | "cyan" | "amber" | "coral";
@@ -7,6 +9,7 @@ export interface Role {
 	joiningCode?: string; // Added this property
 }
 
+
 export interface Office {
 	id?: string;
 	ownerId: string;
@@ -14,6 +17,7 @@ export interface Office {
 	workspaces: number;
 	roles: Role[];
 }
+
 
 export interface SetupDataContextType {
 	officeName: string;
@@ -40,3 +44,13 @@ export interface Task {
 }
 
 
+export interface Joined {
+	role: string;
+	officeId: string;
+}
+
+
+export interface User extends FirebaseUser {
+	joined?: Joined[];
+	username?: string;
+}

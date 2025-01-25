@@ -15,7 +15,7 @@ import { ThemedText } from "@/components/themed/ThemedText";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import ProfileItem from "@/components/ProfileItem";
-import {collection, getDocs} from "firebase/firestore";
+import {collection, doc, getDoc, getDocs, updateDoc} from "firebase/firestore";
 import {db} from "@/constants/Firebase";
 import {Office, Role} from "@/types";
 
@@ -33,6 +33,45 @@ export default function Profile() {
 		return <Redirect href="/sign-in" />;
 	}
 
+	const handlePreviewRoleAndOffice = async (code: string) => {
+		if (code.length !== 6) {
+			setResultMessage("");
+			return;
+		}
+
+		try {
+			const officesCollectionRef = collection(db, "offices");
+			const officesSnapshot = await getDocs(officesCollectionRef);
+
+			let foundRole: Role | null = null;
+			let foundOfficeId: string | null = null;
+
+			// Search for the role and office based on the joining code
+			officesSnapshot.forEach((doc) => {
+				const officeData = doc.data() as Office;
+				if (Array.isArray(officeData.roles)) {
+					const matchingRole = officeData.roles.find((role) => role.joiningCode === code);
+
+					if (matchingRole) {
+						foundRole = matchingRole;
+						foundOfficeId = doc.id;
+					}
+				}
+			});
+
+			if (foundRole && foundOfficeId) {
+				setResultMessage(
+					`Preview: You are joining the role "${(foundRole as Role).name}" in Office ID: ${foundOfficeId}.`
+				);
+			} else {
+				setResultMessage("No matching role or office found for the provided joining code.");
+			}
+		} catch (error) {
+			console.error("Error previewing role and office:", error);
+			setResultMessage("An error occurred while previewing the role and office.");
+		}
+	};
+
 	const handleJoinOffice = async () => {
 		if (!joiningCode) {
 			setResultMessage("Please enter a joining code.");
@@ -46,28 +85,67 @@ export default function Profile() {
 			let foundRole: Role | null = null;
 			let foundOfficeId: string | null = null;
 
+			// Search for the role based on the joining code
 			officesSnapshot.forEach((doc) => {
-				const officeData = doc.data() as Office; // Typecast Firestore data to Office
-				if (Array.isArray(officeData.roles)) { // Ensure roles is an array
+				const officeData = doc.data() as Office;
+				if (Array.isArray(officeData.roles)) {
 					const matchingRole = officeData.roles.find((role) => role.joiningCode === joiningCode);
 
 					if (matchingRole) {
 						foundRole = matchingRole;
-						foundOfficeId = doc.id; // Firestore document ID
+						foundOfficeId = doc.id;
 					}
 				}
 			});
 
 			if (foundRole && foundOfficeId) {
-				setResultMessage(`You are joining the role "${(foundRole as Role).name}" in Office ID: ${foundOfficeId}`);
+				const userDocRef = doc(db, "users", session.uid);
+				const userSnapshot = await getDoc(userDocRef);
+
+				if (!userSnapshot.exists()) {
+					setResultMessage("User not found.");
+					return;
+				}
+
+				const userData = userSnapshot.data();
+				const joined = userData.joined || [];
+
+				const isAlreadyJoined = joined.some(
+					(entry: { role: string; officeId: string }) =>
+						entry.role === foundRole!.name && entry.officeId === foundOfficeId
+				);
+
+				if (isAlreadyJoined) {
+					setResultMessage("You have already joined this role in this office.");
+					return;
+				}
+
+				const updatedJoined = [
+					...joined,
+					{ role: (foundRole as Role).name, officeId: foundOfficeId },
+				];
+
+				await updateDoc(userDocRef, { joined: updatedJoined });
+
+				setResultMessage(
+					`You have successfully joined the role "${(foundRole as Role).name}" in Office ID: ${foundOfficeId}.`
+				);
+
+				setTimeout(() => {
+					setJoiningCode("");
+					setResultMessage("");
+					setModalVisible(false);
+				}, 1000);
 			} else {
 				setResultMessage("No matching role found for the provided joining code.");
 			}
 		} catch (error) {
-			console.error("Error fetching offices:", error);
+			console.error("Error joining office:", error);
 			setResultMessage("An error occurred while trying to join the office.");
 		}
 	};
+
+
 
 
 	return (
@@ -76,6 +154,7 @@ export default function Profile() {
 				<View style={[styles.profileImageView, { backgroundColor }]}>
 					<Ionicons name={"person"} size={30} color={"#FFF"} />
 				</View>
+				<ThemedText type="subtitle">{session.username}</ThemedText>
 				<ThemedText type="subtitle">{session.email}</ThemedText>
 			</View>
 
@@ -98,7 +177,7 @@ export default function Profile() {
 				text="Join Office"
 				onPress={() => setModalVisible(true)}
 			/>
-			<ProfileItem icon={"analytics-outline"} text="Joined in Offices" />
+			<ProfileItem icon={"analytics-outline"} text="Joined in Offices"  onPress={() => router.push("../(my)//joined-offices")}/>
 			<ProfileItem icon={"exit-outline"} text="Logout" alt={true} onPress={signOut} />
 
 			<Modal
@@ -114,7 +193,12 @@ export default function Profile() {
 							style={styles.input}
 							placeholder="Joining Code"
 							value={joiningCode}
-							onChangeText={setJoiningCode}
+							onChangeText={(code) => {
+								setJoiningCode(code);
+								if (code.length === 6) {
+									handlePreviewRoleAndOffice(code);
+								}
+							}}
 						/>
 						{resultMessage ? (
 							<Text style={styles.resultMessage}>{resultMessage}</Text>
