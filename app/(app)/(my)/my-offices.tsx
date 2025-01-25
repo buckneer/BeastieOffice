@@ -1,19 +1,26 @@
 import React, { useEffect, useState } from "react";
 import {FlatList, StyleSheet, Text, View, TouchableOpacity, SafeAreaView} from "react-native";
-import { collection, getDocs } from "firebase/firestore";
+import {collection, getDocs, query, where} from "firebase/firestore";
 import { db } from "@/constants/Firebase";
 import ThemedSafeArea from "@/components/themed/ThemedSafeArea";
 import {Office} from "@/types";
+import {useSession} from "@/components/ctx";
 
 
 export default function MyOffices() {
+	const { session } = useSession();
 	const [offices, setOffices] = useState<Office[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		const fetchOffices = async () => {
 			try {
-				const querySnapshot = await getDocs(collection(db, "offices"));
+				const officesQuery = query(
+					collection(db, "offices"),
+					where("ownerId", "==", session!.uid)
+				);
+
+				const querySnapshot = await getDocs(officesQuery);
 				const officesData = querySnapshot.docs.map((doc) => ({
 					id: doc.id,
 					...doc.data(),

@@ -13,44 +13,58 @@ import { ThemedText } from "@/components/themed/ThemedText";
 import IconTextInput from "@/components/themed/IconTextView";
 import Checkbox from "@/components/themed/Checkbox";
 import { Colors } from "@/constants/Colors";
-import {Link, Redirect, router, useNavigation, useRouter} from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import {auth} from "@/constants/Firebase";
-import {useFriendlyError} from "@/hooks/useFirebaseError";
-import {useSession} from "@/components/ctx";
-import {useThemeColor} from "@/hooks/useThemeColor";
+import { Link, Redirect } from "expo-router";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/constants/Firebase";
+import { useFriendlyError } from "@/hooks/useFirebaseError";
+import { useSession } from "@/components/ctx";
 
-const SignIn: React.FC = () => {
-	const { signIn, isLoading, session } = useSession();
+const SignUp: React.FC = () => {
+	const { session } = useSession();
 	const [email, setEmail] = useState<string>("");
 	const [password, setPassword] = useState<string>("");
+	const [confirmPassword, setConfirmPassword] = useState<string>("");
+	const [username, setUsername] = useState<string>("");
+	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const { error, setFriendlyError, clearError } = useFriendlyError();
-	const router = useRouter();
-
-	const color = useThemeColor({}, "tint");
 
 	if (session) {
 		return <Redirect href="./(app)" />;
 	}
 
-	const handleSignIn = async () => {
-		clearError();  // Reset error state
+	const handleSignUp = async () => {
+		clearError();
 
+		if (password !== confirmPassword) {
+			setFriendlyError("Passwords do not match");
+			return;
+		}
+
+		setIsLoading(true);
 
 		try {
-			await signIn(email, password);
-			// Successfully signed in
-			// You can navigate to the next screen or update state as needed
-		}catch (err: any) {
+			// Create user in Firebase Authentication
+			const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+			const { user } = userCredential;
+
+			// Save user information to Firestore
+			await setDoc(doc(db, "users", user.uid), {
+				username,
+				email,
+				createdAt: new Date().toISOString(),
+			});
+
+			console.log("User created and saved to Firestore:", user.uid);
+		} catch (err: any) {
 			setPassword("");
+			setConfirmPassword("");
 			setFriendlyError(err); // Set friendly error message
+		} finally {
+			setIsLoading(false);
 		}
 	};
-
-
-	const navigateToSignUp = () => {
-		router.push('/sign-up')
-	}
 
 	return (
 		<KeyboardAvoidingView
@@ -69,11 +83,17 @@ const SignIn: React.FC = () => {
 
 				<View style={styles.mutedTextContainer}>
 					<ThemedText type="default" textColor="muted">
-						You have to sign in to access all tasks and to create new ones!
+						Create an account to access all tasks and start organizing!
 					</ThemedText>
 				</View>
 
 				<View style={styles.inputsContainer}>
+					<IconTextInput
+						icon={"person"}
+						value={username}
+						onChangeText={setUsername}
+						placeholder="Username"
+					/>
 					<IconTextInput
 						icon={"mail"}
 						value={email}
@@ -89,40 +109,35 @@ const SignIn: React.FC = () => {
 						placeholder="Password"
 						secureTextEntry
 					/>
+					<IconTextInput
+						icon={"key"}
+						value={confirmPassword}
+						onChangeText={setConfirmPassword}
+						placeholder="Confirm Password"
+						secureTextEntry
+					/>
 				</View>
 
 				{error && <Text style={styles.error}>{error}</Text>}
 
 				<View style={styles.rememberContainer}>
-					<Checkbox label="Remember me?" />
-					<Link href="/forgot-password" asChild>
+					<Checkbox label="I agree to the terms and conditions" />
+					<Link href="/sign-in" asChild>
 						<TouchableOpacity>
-							<ThemedText type="link">Forgot Password</ThemedText>
+							<ThemedText type="link">Already have an account? Sign In</ThemedText>
 						</TouchableOpacity>
 					</Link>
 				</View>
 
 				<TouchableOpacity
 					style={styles.button}
-					onPress={handleSignIn}
+					onPress={handleSignUp}
 					disabled={isLoading}
 				>
 					<Text style={styles.buttonText}>
-						{isLoading ? "Signing In..." : "Login"}
+						{isLoading ? "Signing Up..." : "Register"}
 					</Text>
 				</TouchableOpacity>
-
-
-				<TouchableOpacity
-					style={styles.outlineButton}
-					onPress={navigateToSignUp}
-					disabled={isLoading}
-				>
-					<Text style={[styles.buttonText, {color: color}]}>
-						{isLoading ? "Signing In..." : "Sign Up"}
-					</Text>
-				</TouchableOpacity>
-
 
 				{isLoading && <ActivityIndicator style={styles.loading} />}
 			</ThemedView>
@@ -151,19 +166,9 @@ const styles = StyleSheet.create({
 		backgroundColor: Colors.dark.tint,
 		marginTop: 20,
 	},
-	outlineButton: {
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 15,
-		paddingHorizontal: 32,
-		borderRadius: 40,
-		borderColor: Colors.dark.tint,
-		borderWidth: 1,
-		marginTop: 20,
-	},
 	buttonText: { color: "#fff", fontSize: 18 },
 	error: { color: "red", marginTop: 10, textAlign: "center" },
 	loading: { marginTop: 16 },
 });
 
-export default SignIn;
+export default SignUp;

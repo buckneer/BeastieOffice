@@ -37,6 +37,7 @@ export default function RootLayout() {
               }}>
             <Stack.Screen name="sign-in" options={{}} />
             <Stack.Screen name="forgot-password" options={{}} />
+            <Stack.Screen name="sign-up" options={{}} />
             <Stack.Screen name="(app)" options={{}} />
           </Stack>
         </ThemeProvider>
